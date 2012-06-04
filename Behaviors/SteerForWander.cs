@@ -4,97 +4,114 @@ using UnitySteer;
 
 /// <summary>
 /// Steers a vehicle to wander around
+/// Following http://www.red3d.com/cwr/steer/Wander.html
 /// </summary>
 [AddComponentMenu("UnitySteer/Steer/... for Wander")]
 public class SteerForWander : Steering
 {
-    Vector3 _jitter;            // Last jitter angle vector
-    float _angle;               // Current jitter angle off the velocity in degrees
+	Vector3 _target;
+	
+	[SerializeField]
+	float _targetDistance = 2; 	    	// Offset distance of target sphere
+	
+    [SerializeField]
+    float _targetRadius = 1f;	       	// Target sphere radius
 
     [SerializeField]
-    float _radius = 0.4f;       // Jitter length 
-
-    [SerializeField]
-    float _angleMax = 5f;       // Maximum jitter angle change per tick in degrees.
-
-    [SerializeField]
-    float _distance = 0.6f;     // Offset distance of jitter
+	float _jitterRadius = 0.4f;			// Jitter sphere radius
 
     #region Public properties
-
-    /// <summary>
-    /// Length of the jitter force.
-    /// </summary>
-    public float Radius
+	
+	/// <summary>
+	/// Radius of the sphere, the target point is moving on.
+	/// </summary>
+    public float TargetRadius
     {
-        get
-        {
-            return _radius;
+        get {
+            return _targetRadius;
         }
         set
         {
-            _radius = value;
+            _targetRadius = value;
         }
     }
 
-    /// <summary>
-    /// Maximum angle to adjust the jitter by in degrees.
-    /// </summary>
-    public float AngleMax
+	/// <summary>
+	/// Offset from the vehicle to the target sphere.
+	/// </summary>
+    public float TargetDistance
     {
         get
         {
-            return _angleMax;
+            return _targetDistance;
         }
         set
         {
-            _angleMax = value;
+            _targetDistance = value;
         }
     }
-
-    /// <summary>
-    /// Offset of the jitter force along the vehicle's forward velocity.
-    /// </summary>
-    public float Distance
-    {
-        get
-        {
-            return _distance;
-        }
-        set
-        {
-            _distance = value;
-        }
-    }
+	
+	/// <summary>
+	/// Radius of the jitter sphere, which is applied to the target point every tick.
+	/// </summary>
+	public float JitterRadius
+	{
+		get
+		{
+			return _jitterRadius;
+		}
+		set
+		{
+			_jitterRadius = value;
+		}
+	}
 
     #endregion
-
+	
+	protected override void Start()
+	{
+		base.Start();
+		
+		_target = Vehicle.transform.forward;
+	}
+	
+	private Vector3 Direction()
+	{
+		if (Vehicle.Speed == 0)
+			return Vehicle.transform.forward.normalized;  // Default to forward vector
+		else
+        	return Vehicle.Velocity.normalized;          // Velocity
+	}
+	
     protected override Vector3 CalculateForce()
     {
-        // Increment the angle
-        _angle += _angleMax * Random.Range(-1f, 1f);
-
-        // Place the base force out in front of the agent
-        var baseForce = Vehicle.Speed == 0
-            ? Vehicle.transform.forward.normalized  // Default to forward vector
-            : Vehicle.NormalizedVelocity;           // Velocity
-        
-        // Rotate the jitter angle about the up vector.
-        _jitter = Quaternion.AngleAxis(_angle, Vector3.up) * baseForce * _radius;
-
-        return baseForce * _distance + _jitter;
+		_target += new Vector3(Random.Range(-_jitterRadius, _jitterRadius), 
+					Random.Range(-_jitterRadius, _jitterRadius), 
+					Random.Range(-_jitterRadius, _jitterRadius));
+		if (Vehicle.IsPlanar)
+		{
+			_target.y = 0;
+		}
+		_target.Normalize();
+		_target *= _targetRadius;
+		return Direction() * _targetDistance + _target;
     }
 
 #if ANNOTATE_WANDER
-
     void OnDrawGizmos()
     {
         if (Vehicle != null)
         {
-            var baseForce = Vehicle.Position + (Vehicle.NormalizedVelocity * _distance);
+            var center = Vehicle.Position + Direction() * _targetDistance;
 
-            Debug.DrawLine(Vehicle.Position, baseForce, Color.black);
-            Debug.DrawLine(baseForce, baseForce + _jitter, Color.red);
+			Gizmos.color = Color.blue;
+			Gizmos.DrawLine(Vehicle.Position, center);
+			
+			Gizmos.color = Color.grey;
+			Gizmos.DrawWireSphere(center, _targetRadius);
+			
+            Gizmos.color = Color.red;
+			Gizmos.DrawLine(center, center + _target);
         }
     }
 
