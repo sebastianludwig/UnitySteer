@@ -11,10 +11,29 @@ using UnitySteer.Helpers;
 public class SteerForNavmesh : Steering {
 	#region Private fields
 	[SerializeField]
-	float _avoidanceForceFactor = 0.75f;
+	float _avoidanceForceFactor = 0.1f;
 
 	[SerializeField]
 	float _minTimeToCollision = 2;
+	
+	[SerializeField]
+	float _whiskerLengthFactor = 0.7f;		// in %
+	
+	[SerializeField]
+	float _minWhiskerAngle = 15f;
+	
+	[SerializeField]
+	float _maxWhiskerAngle = 70f;
+	
+	[SerializeField]
+	float _whiskerSpreadSpeed = 2f;
+	
+	[SerializeField]
+	int _whiskerCooldown = 10;		// number of ticks, before whiskers start collapsing again
+	
+	[SerializeField]
+	float _whiskerCollapseSpeed = 2f;
+	
 	
 	[SerializeField]
 	bool _offMeshCheckingEnabled = true;
@@ -26,6 +45,33 @@ public class SteerForNavmesh : Steering {
 	float _probeRadius = 0.1f;
 	
 	// TODO navmesh layer selection -> CustomEditor -> GameObjectUtility.GetNavMeshLayerNames() + Popup
+	#endregion
+	
+	#region Private properties
+	private float _currentWhiskerAngle;
+	private float currentWhiskerAngle
+	{
+		get
+		{
+			return _currentWhiskerAngle;
+		}
+		set
+		{
+			_currentWhiskerAngle = Mathf.Clamp(value, _minWhiskerAngle, _maxWhiskerAngle);
+		}
+	}
+	private int _currentWhiskerHeat;		// whiskers will collapse, if this is back to 0
+	private int currentWhiskerHeat
+	{
+		get
+		{
+			return _currentWhiskerHeat;
+		}
+		set
+		{
+			_currentWhiskerHeat = Mathf.Max(0, value);
+		}
+	}
 	#endregion
 	
 	#region Public properties
@@ -108,12 +154,48 @@ public class SteerForNavmesh : Steering {
 	protected override void Start() {
 		base.Start();
 		_navMeshLayerMask = 1 << NavMesh.GetNavMeshLayerFromName("Default");
+		_currentWhiskerAngle = _minWhiskerAngle;
 	}
 	
 	
 	public override bool IsPostProcess 
 	{ 
 		get { return true; }
+	}
+	
+	private NavMeshHit NavmeshRaycast(Vector3 movement) {
+		#if ANNOTATE_NAVMESH
+		Debug.DrawRay(Vehicle.Position, movement, Color.cyan);
+		#endif
+		
+		NavMeshHit hit;
+		NavMesh.Raycast(Vehicle.Position, Vehicle.Position + movement, out hit, _navMeshLayerMask);		
+		return hit;
+	}
+	
+	private Vector3 CalculateAvoidanceForce(Vector3 movement, NavMeshHit hit) {
+		Vector3 avoidance = Vector3.zero;
+		Profiler.BeginSample("Calculate NavMesh avoidance");
+		{
+			Vector3 moveDirection = movement.normalized;
+			avoidance = OpenSteerUtility.perpendicularComponent(hit.normal, moveDirection);
+	
+			avoidance.Normalize();
+			
+			avoidance *= Vehicle.MaxForce * _avoidanceForceFactor;
+	
+			#if ANNOTATE_NAVMESH
+			Debug.DrawLine(Vehicle.Position, Vehicle.Position + avoidance, Color.white);
+			#endif
+	
+			avoidance += moveDirection;
+	
+			#if ANNOTATE_NAVMESH
+			Debug.DrawLine(Vehicle.Position, Vehicle.Position + avoidance, Color.yellow);
+			#endif
+		}
+		Profiler.EndSample();
+		return avoidance;
 	}
 	
 	/// <summary>
@@ -129,7 +211,6 @@ public class SteerForNavmesh : Steering {
 	/// </remarks>
 	protected override Vector3 CalculateForce()
 	{
-		NavMeshHit hit;
 		
 		/*
 		 * While we could just calculate line as (Velocity * predictionTime) 
@@ -139,13 +220,10 @@ public class SteerForNavmesh : Steering {
 		Vector3 futurePosition = Vehicle.PredictFuturePosition(_minTimeToCollision);
 		Vector3 movement = futurePosition - Vehicle.Position;
 		
-		#if ANNOTATE_NAVMESH
-		Debug.DrawRay(Vehicle.Position, movement, Color.cyan);
-		#endif
-		
 		if (_offMeshCheckingEnabled) {
 			Vector3 probePosition = Vehicle.Position + _probePositionOffset;
 			
+			NavMeshHit hit;
 			Profiler.BeginSample("Off-mesh checking");
 			NavMesh.SamplePosition(probePosition, out hit, _probeRadius, _navMeshLayerMask);
 			Profiler.EndSample();
@@ -160,7 +238,7 @@ public class SteerForNavmesh : Steering {
 					Debug.DrawLine(probePosition, hit.position, Color.red);
 					#endif
 					
-					return (hit.position - probePosition).normalized * Vehicle.MaxForce;
+					return (hit.position - probePosition).normalized * Vehicle.MaxForce * _avoidanceForceFactor;
 				} else {			// no closest edge - too far off the mesh
 					#if ANNOTATE_NAVMESH
 					Debug.DrawLine(probePosition, probePosition + Vector3.up * 3, Color.red);
@@ -172,32 +250,35 @@ public class SteerForNavmesh : Steering {
 		}
 		
 		
+		NavMeshHit center;
+		NavMeshHit rightWhisker;
+		NavMeshHit leftWhisker;
+		
 		Profiler.BeginSample("NavMesh raycast");
-		NavMesh.Raycast(Vehicle.Position, futurePosition, out hit, _navMeshLayerMask);
+		{
+			center = NavmeshRaycast(movement);
+			rightWhisker = NavmeshRaycast(Quaternion.AngleAxis(_currentWhiskerAngle, Vector3.up) * movement * _whiskerLengthFactor);
+			leftWhisker = NavmeshRaycast(Quaternion.AngleAxis(-_currentWhiskerAngle, Vector3.up) * movement * _whiskerLengthFactor);
+		}
 		Profiler.EndSample();
 		
-		if (!hit.hit)
+		if (!center.hit && !leftWhisker.hit && !rightWhisker.hit) {	// no collision
+			currentWhiskerHeat--;								// cool down whiskers
+			if (currentWhiskerHeat == 0)						// if completely cooled down
+				currentWhiskerAngle -= _whiskerCollapseSpeed;	// start to collapse
 			return Vector3.zero;
+		}
 		
-		Vector3 avoidance = Vector3.zero;
-		Profiler.BeginSample("Calculate NavMesh avoidance");
-		Vector3 moveDirection = Vehicle.Velocity.normalized;
-		avoidance =	 OpenSteerUtility.perpendicularComponent(hit.normal, moveDirection);
-
-		avoidance.Normalize();
-
-		#if ANNOTATE_NAVMESH
-		Debug.DrawLine(Vehicle.Position, Vehicle.Position + avoidance, Color.white);
-		#endif
-
-		avoidance += moveDirection * Vehicle.MaxForce * _avoidanceForceFactor;
-
-		#if ANNOTATE_NAVMESH
-		Debug.DrawLine(Vehicle.Position, Vehicle.Position + avoidance, Color.yellow);
-		#endif
-
-		Profiler.EndSample();
+		currentWhiskerHeat = _whiskerCooldown;			// max cooldown value
+		currentWhiskerAngle += _whiskerSpreadSpeed;		// spread whiskers
 		
-		return avoidance;
+		if (center.hit)
+			return CalculateAvoidanceForce(movement, center);
+		if (rightWhisker.hit)
+			return CalculateAvoidanceForce(movement, rightWhisker);
+		if (leftWhisker.hit)
+			return CalculateAvoidanceForce(movement, leftWhisker);
+		
+		return Vector3.zero;
 	}	
 }
