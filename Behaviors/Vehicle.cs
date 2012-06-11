@@ -417,7 +417,7 @@ public abstract class Vehicle : DetectableObject
 	/// <returns>
 	/// Seek vector <see cref="Vector3"/>
 	/// </returns>
-	public Vector3 GetSeekVector(Vector3 target, bool considerVelocity = true)
+	public Vector3 GetSeekVector(Vector3 target, bool considerVelocity = true, bool considerArrivalRadius = true)
 	{
 		/*
 		 * First off, we calculate how far we are from the target, If this
@@ -435,7 +435,7 @@ public abstract class Vehicle : DetectableObject
 		
 		var difference = target - Position;
         float d = difference.sqrMagnitude;
-        if (d > SquaredArrivalRadius)
+        if (!considerArrivalRadius || d > SquaredArrivalRadius)
 		{
 			/*
 			 * But suppose we still have some distance to go. The first step
