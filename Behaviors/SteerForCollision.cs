@@ -112,6 +112,16 @@ public class SteerForCollision : Steering {
 	
 	void OnCollisionEnter(Collision collision)
 	{
+		HandleCollision(collision);
+	}
+	
+	void OnCollisionStay(Collision collision)
+	{
+		HandleCollision(collision);
+	}
+	
+	void HandleCollision(Collision collision)
+	{
 		if (_didCollide || TargetObject == null)
 		{
 			return;
