@@ -41,17 +41,22 @@ public abstract class Steering : MonoBehaviour {
 			_force = CalculateForce();
 			if (_force != Vector3.zero)
 			{
-				if (!ReportedMove && OnStartMoving != null)
+				if (!ReportedStartMoving && OnStartMoving != null)
 				{
-					OnStartMoving(new SteeringEvent<Vehicle>(this, "moving", Vehicle));
+					OnStartMoving(new SteeringEvent<Vehicle>(this, "startMoving", Vehicle));
 				}
 				ReportedArrival = false;
-				ReportedMove = true;
+				ReportedStartMoving = true;
+				
+				if (OnMoving != null)
+				{
+					OnMoving(new SteeringEvent<Vehicle>(this, "moving", Vehicle));
+				}
 			}
 			else if (!ReportedArrival)
 			{
 				ReportedArrival = true;
-				ReportedMove = false;
+				ReportedStartMoving = false;
 				if (OnArrival != null)
 				{
 					var message = new SteeringEvent<Vehicle>(this, "arrived", Vehicle);
@@ -79,9 +84,15 @@ public abstract class Steering : MonoBehaviour {
 	public SteeringEventHandler<Vehicle> OnArrival { get; set; }
 	
 	/// <summary>
-	/// Steering event handler for arrival notification
+	/// Steering event handler for start moving notification
 	/// </summary>
 	public SteeringEventHandler<Vehicle> OnStartMoving { get; set; }
+	
+	/// <summary>
+	/// Steering event handler for moving notification. That is, if the 
+	/// calculated forece is not equal to Vector3.zero.
+	/// </summary>
+	public SteeringEventHandler<Vehicle> OnMoving { get; set; }
 	
 	/// <summary>
 	/// Have we reported that we stopped moving?
@@ -91,7 +102,7 @@ public abstract class Steering : MonoBehaviour {
 	/// <summary>
 	/// Have we reported that we began moving?
 	/// </summary>
-	public bool ReportedMove { get; protected set; }
+	public bool ReportedStartMoving { get; protected set; }
 	
 	
 	/// <summary>
