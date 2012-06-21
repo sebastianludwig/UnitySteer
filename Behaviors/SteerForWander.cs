@@ -72,10 +72,10 @@ public class SteerForWander : Steering
 	{
 		base.Start();
 		
-		Reset();
+		ResetTarget();
 	}
 	
-	public void Reset() {
+	public void ResetTarget() {
 		_target = Vehicle.transform.forward;
 	}
 	
