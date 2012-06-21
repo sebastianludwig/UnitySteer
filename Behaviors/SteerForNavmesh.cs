@@ -272,12 +272,12 @@ public class SteerForNavmesh : Steering {
 		currentWhiskerHeat = _whiskerCooldown;			// max cooldown value
 		currentWhiskerAngle += _whiskerSpreadSpeed;		// spread whiskers
 		
-		if (center.hit)
-			return CalculateAvoidanceForce(movement, center);
 		if (rightWhisker.hit)
 			return CalculateAvoidanceForce(movement, rightWhisker);
 		if (leftWhisker.hit)
 			return CalculateAvoidanceForce(movement, leftWhisker);
+		if (center.hit)
+			return CalculateAvoidanceForce(movement, center);
 		
 		return Vector3.zero;
 	}	
