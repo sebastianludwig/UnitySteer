@@ -23,7 +23,10 @@ public class MovementTracker {
 	public bool enabled
 	{ 
 		get { return _enabled; } 
-		set { 
+		set {
+			if (_enabled == value)
+				return;
+			
 			_enabled = value; 
 			Reset();
 			if (_enabled)
