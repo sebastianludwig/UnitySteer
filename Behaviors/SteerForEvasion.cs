@@ -44,11 +44,12 @@ public class SteerForEvasion : Steering
 		}
 		set {
 			_menace = value;
-			if (_movementTracker != null)
+			if (_movementTracker == null)
 			{
-				_movementTracker.target = _menace;
-				_movementTracker.enabled = _menace != null;
+				_movementTracker = new MovementTracker(_menace, _trackingInterval);
 			}
+			_movementTracker.target = _menace;
+			_movementTracker.enabled = _menace != null;
 		}
 	}
 	#endregion
