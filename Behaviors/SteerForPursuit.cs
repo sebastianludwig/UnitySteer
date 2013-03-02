@@ -151,7 +151,7 @@ public class SteerForPursuit : Steering
 			// estimated position of quarry at intercept
 			Vector3 target = _quarry.position + _movementTracker.velocity * etl;
 
-			force = Vehicle.GetSeekVector(target);
+			force = Vehicle.GetSeekVector(target, false);
 			
 			#if ANNOTATE_PURSUIT
 			Debug.DrawLine(Vehicle.Position, force, Color.blue);
