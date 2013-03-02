@@ -21,12 +21,28 @@ using TickedPriorityQueue;
 [AddComponentMenu("UnitySteer/Radar/Radar")]
 public class Radar: MonoBehaviour {
 	#region Private properties
+    
+    static Dictionary<Collider, DetectableObject> _cachedDetectableObjects = new Dictionary<Collider, DetectableObject>();
 	
 	Transform _transform;
 	TickedObject _tickedObject;
 	UnityTickedQueue _steeringQueue;
 	
-	
+    [SerializeField]
+    string _queueName = "Radar";
+    
+    /// <summary>
+    /// The maximum number of radar update calls processed on the queue per update
+    /// </summary>
+    /// <remarks>
+    /// Notice that this is a limit shared across queue items of the same name, at
+    /// least until we have some queue settings, so whatever value is set last for 
+    /// the queue will win.  Make sure your settings are consistent for objects of
+    /// the same queue.
+    /// </remarks>
+    [SerializeField]
+    int _maxQueueProcessedPerUpdate = 20;
+ 
 	[SerializeField]
 	float _detectionRadius = 5;
 	
@@ -44,18 +60,23 @@ public class Radar: MonoBehaviour {
 	/// </summary>
 	[SerializeField]
 	float _tickLength = 0.5f;
+    
+    [SerializeField]
+    int _preAllocateSize = 30;
 	
 	
 	
-	IEnumerable<Collider> _detected;
-	IEnumerable<Vehicle> _vehicles = new List<Vehicle>();
-	IEnumerable<DetectableObject> _obstacles = new List<DetectableObject>();
-	IList<DetectableObject> _ignoredObjects = new List<DetectableObject>();
+	Collider[] _detectedColliders;
+    List<DetectableObject> _detectedObjects;
+    List<Vehicle> _vehicles;
+    List<DetectableObject> _obstacles;
+	IList<DetectableObject> _ignoredObjects = new List<DetectableObject>(10);
 	
 	
 	Vehicle _vehicle;
 	#endregion
 	
+    
 	
 	#region Public properties
 	/// <summary>
@@ -63,7 +84,7 @@ public class Radar: MonoBehaviour {
 	/// </summary>
 	public IEnumerable<Collider> Detected 
 	{
-		get { return _detected; }
+		get { return _detectedColliders; }
 	}
 	
 	/// <summary>
@@ -161,16 +182,23 @@ public class Radar: MonoBehaviour {
 		_vehicle = GetComponent<Vehicle>();	
 		_transform = transform;
 		Ignore(_vehicle); // All radars ignore their own vehicle
+        _vehicles = new List<Vehicle>(_preAllocateSize);
+        _obstacles = new List<DetectableObject>(_preAllocateSize);
+        _detectedObjects = new List<DetectableObject>(_preAllocateSize);
 	}
 	
 	
+    void OnLevelWasLoaded(int level) {
+        _cachedDetectableObjects.Clear();
+    }
+    
 	void OnEnable()
 	{
 		_tickedObject = new TickedObject(OnUpdateRadar);
 		_tickedObject.TickLength = _tickLength;
-		_steeringQueue = UnityTickedQueue.GetInstance("Radar");
+		_steeringQueue = UnityTickedQueue.GetInstance(_queueName);
 		_steeringQueue.Add(_tickedObject);
-		_steeringQueue.MaxProcessedPerUpdate = 50;
+		_steeringQueue.MaxProcessedPerUpdate = _maxQueueProcessedPerUpdate;
 	}
 
 	
@@ -186,7 +214,7 @@ public class Radar: MonoBehaviour {
 	
 	public void OnUpdateRadar(object obj)
 	{
-		_detected = Detect();
+		_detectedColliders = Detect();
 		FilterDetected();
 		if (OnDetected != null)
 		{
@@ -217,7 +245,7 @@ public class Radar: MonoBehaviour {
 	}
 		
 	
-	protected virtual IEnumerable<Collider> Detect()
+	protected virtual Collider[] Detect()
 	{
 		return Physics.OverlapSphere(Position, DetectionRadius, LayersChecked);
 	}
@@ -234,13 +262,37 @@ public class Radar: MonoBehaviour {
 		 * As a reference, whenever the radar fired up near a complex object
 		 * (say, a character model) obtaining the list of DetectableObjects
 		 * took about 75% of the time used for the frame.
-		 * 
-		 * We materialize the list so that we don't select it twice.
+         * 
 		 */
 		Profiler.BeginSample("Base FilterDetected");
-		var notIgnored =  _detected.Select( d => d.transform.GetComponent<DetectableObject>() ).Except(_ignoredObjects).ToList();
-		_vehicles = notIgnored.OfType<Vehicle>().Where( v => v != null && (v.enabled || _detectDisabledVehicles));
-		_obstacles = notIgnored.Where( d => d != null && !(d is Vehicle) );
+
+        _vehicles.Clear();
+        _obstacles.Clear();
+        _detectedObjects.Clear();
+        
+        foreach(var x in _detectedColliders) {
+            if (!_cachedDetectableObjects.ContainsKey(x)) {
+                _cachedDetectableObjects[x] = x.transform.GetComponent<DetectableObject>();
+            }
+            var detectable = _cachedDetectableObjects[x];
+            if (detectable != null && !_ignoredObjects.Contains(detectable)) {
+                _detectedObjects.Add(detectable);
+            }
+        }
+        
+        for (int i = 0; i < _detectedObjects.Count; i++) {
+            var v = _detectedObjects[i] as Vehicle;
+            if (v != null && (v.enabled || _detectDisabledVehicles)) {
+                _vehicles.Add(v);
+            }
+        }
+        
+        for (int i = 0; i < _detectedObjects.Count; i++) {
+            var d = _detectedObjects[i] as DetectableObject;
+            if (d != null && !(d is Vehicle)) {
+                _obstacles.Add(d);
+            }
+        }
 		Profiler.EndSample();
 	}
 	

@@ -15,6 +15,17 @@ public class SteerForPursuit : Steering
 	[SerializeField]
 	Transform _quarry;
 	
+    /// <summary>
+    /// A distance at which we are 'close enough' to stop pursuing
+    /// </summary>
+    /// <remarks>
+    /// Notice that this is different from the vehicle's arrival radius,
+    /// since we may want to be able to have an attack distance that is
+    /// different from the radius used when moving to a point.
+    /// </remarks>
+    [SerializeField]
+    float _acceptableDistance = 0;
+    
 	[SerializeField]
 	float _trackingInterval = 0.25f;
 	
@@ -76,8 +87,10 @@ public class SteerForPursuit : Steering
 		var force    = Vector3.zero;
 		var offset	 = _quarry.position - Vehicle.Position;
 		var distance = offset.magnitude;
+		// TODO missing from merge: + _quarry.ScaledRadius, because _quarry is only a transform in my version
+        var radius   = Vehicle.ScaledRadius + _acceptableDistance;
 
-		if (distance > Vehicle.ArrivalRadius)
+		if (distance > radius)
 		{
 			Vector3 unitOffset = offset / distance;
 
