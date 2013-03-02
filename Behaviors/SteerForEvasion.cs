@@ -67,7 +67,6 @@ public class SteerForEvasion : Steering
 		{
 			return Vector3.zero;
 		}
-		
 		// offset from this to menace, that distance, unit vector toward menace
 		Vector3 offset = _menace.position - Vehicle.Position;
 		float distance = offset.magnitude;
