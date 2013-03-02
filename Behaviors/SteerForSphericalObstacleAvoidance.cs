@@ -153,7 +153,7 @@ public class SteerForSphericalObstacleAvoidance : Steering
 			// movement direction),  add a bit of forward component
 			Vector3 offset = Vehicle.Position - nearest.Obstacle.Position;
 			Vector3 moveDirection = movement.normalized;
-			avoidance =	 OpenSteerUtility.perpendicularComponent(offset, moveDirection);
+			avoidance = OpenSteerUtility.perpendicularComponent(offset, moveDirection);
 
 			avoidance.Normalize();
 
