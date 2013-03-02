@@ -93,5 +93,3 @@ public class SteerForPoint : Steering
 		return Vehicle.GetSeekVector(TargetPoint, _considerVelocity, _considerArrivalRadius);
 	}
 }
-
-

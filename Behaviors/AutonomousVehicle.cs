@@ -40,10 +40,10 @@ public class AutonomousVehicle : TickedVehicle
 	}	
 	
 	#region Speed-related methods
-	protected override void RecordCalculatedVelocity(Vector3 velocity)
+	public override void UpdateOrientationVelocity(Vector3 velocity)
 	{
 		Speed = velocity.magnitude;
-		OrientationVelocity = _speed != 0 ? velocity / _speed : transform.forward;		
+		OrientationVelocity = _speed != 0 ? velocity / _speed : Transform.forward;		
 	}
 
 	protected override Vector3 CalculatePositionDelta(float deltaTime)
