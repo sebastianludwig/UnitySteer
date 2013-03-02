@@ -9,6 +9,8 @@ using UnitySteer.Helpers;
 [AddComponentMenu("UnitySteer/Steer/... for Evasion")]
 public class SteerForEvasion : Steering
 {
+    float _sqrSafetyDistance = 0;
+    
 	#region Private fields
 	MovementTracker _movementTracker;
 	
@@ -20,6 +22,12 @@ public class SteerForEvasion : Steering
 	
 	[SerializeField]
 	float _trackingInterval = 0.25f;
+    
+    /// <summary>
+    /// Distance at which the behavior will consider itself safe and stop avoiding
+    /// </summary>
+    [SerializeField]
+    float _safetyDistance = 2f;
 	#endregion
 	
 	#region Public properties
@@ -52,7 +60,22 @@ public class SteerForEvasion : Steering
 			_movementTracker.enabled = _menace != null;
 		}
 	}
+
+    public float SafetyDistance {
+        get {
+            return this._safetyDistance;
+        }
+        set {
+            _safetyDistance = value;
+            _sqrSafetyDistance = _safetyDistance * _safetyDistance;
+        }
+    }
 	#endregion
+    
+    protected override void Start() {
+        base.Start();
+        _sqrSafetyDistance = _safetyDistance * _safetyDistance;
+    }
 	
 	protected override void Awake()
 	{
@@ -63,10 +86,10 @@ public class SteerForEvasion : Steering
 	
 	protected override Vector3 CalculateForce()
 	{
-		if (_menace == null)
-		{
-			return Vector3.zero;
-		}
+        if (_menace == null || (Vehicle.Position - _menace.position).sqrMagnitude > _sqrSafetyDistance) {
+            return Vector3.zero;
+        }
+
 		// offset from this to menace, that distance, unit vector toward menace
 		Vector3 offset = _menace.position - Vehicle.Position;
 		float distance = offset.magnitude;
