@@ -42,6 +42,12 @@ public class Radar: MonoBehaviour {
     /// </remarks>
     [SerializeField]
     int _maxQueueProcessedPerUpdate = 20;
+    
+    /// <summary>
+    /// How often is the radar updated
+    /// </summary>
+    [SerializeField]
+    float _tickLength = 0.5f;
  
 	[SerializeField]
 	float _detectionRadius = 5;
@@ -55,13 +61,7 @@ public class Radar: MonoBehaviour {
 	[SerializeField]
 	bool _drawGizmos = false;
 
-	/// <summary>
-	/// How often is the radar updated
-	/// </summary>
 	[SerializeField]
-	float _tickLength = 0.5f;
-    
-    [SerializeField]
     int _preAllocateSize = 30;
 	
 	
@@ -128,7 +128,7 @@ public class Radar: MonoBehaviour {
 	/// <summary>
 	/// List of obstacles detected by the radar
 	/// </summary>
-	public IEnumerable<DetectableObject> Obstacles {
+	public List<DetectableObject> Obstacles {
 		get { return _obstacles; }
 
 	}
@@ -144,7 +144,7 @@ public class Radar: MonoBehaviour {
 		}
 	}
 	
-	public SteeringEventHandler<Radar> OnDetected { get; set; }
+	public System.Action<SteeringEvent<Radar>> OnDetected = delegate{};
 
 	/// <summary>
 	/// Gets the vehicle this radar is attached to
@@ -158,7 +158,7 @@ public class Radar: MonoBehaviour {
 	/// <summary>
 	/// List of vehicles detected among the colliders
 	/// </summary>
-	public IEnumerable<Vehicle> Vehicles 
+	public List<Vehicle> Vehicles 
 	{
 		get { return _vehicles; }
 	}
@@ -214,6 +214,7 @@ public class Radar: MonoBehaviour {
 	
 	public void OnUpdateRadar(object obj)
 	{
+        Profiler.BeginSample("OnUpdateRadar");
 		_detectedColliders = Detect();
 		FilterDetected();
 		if (OnDetected != null)
@@ -242,6 +243,7 @@ public class Radar: MonoBehaviour {
 			Debug.Log(sb.ToString());
 		}
 #endif
+        Profiler.EndSample();
 	}
 		
 	
