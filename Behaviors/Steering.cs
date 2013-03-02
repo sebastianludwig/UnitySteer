@@ -92,7 +92,7 @@ public abstract class Steering : MonoBehaviour {
 	/// Steering event handler for moving notification. That is, if the 
 	/// calculated forece is not equal to Vector3.zero.
 	/// </summary>
-	public SteeringEventHandler<Vehicle> OnMoving { get; set; }
+	public System.Action<SteeringEvent<Vehicle>> OnMoving { get; set; }
 	
 	/// <summary>
 	/// Have we reported that we stopped moving?
