@@ -207,7 +207,7 @@ public abstract class TickedVehicle : Vehicle
 		var newVelocity = Velocity + _smoothedAcceleration * elapsedTime;
 
 		// Enforce speed limit
-		newVelocity = Vector3.ClampMagnitude(newAcceleration, MaxSpeed);
+		newVelocity = Vector3.ClampMagnitude(newVelocity, MaxSpeed);
 		DesiredVelocity = newVelocity;
 		
 		// Adjusts the velocity by applying the post-processing behaviors.
