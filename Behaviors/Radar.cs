@@ -15,6 +15,9 @@ using TickedPriorityQueue;
 /// different radars can implement their own detection styles (if for instance
 /// they wish to handle a proximity quadtre/octree themselves).
 /// 
+/// Every object that should be detected needs to have a collider and a DetecableObject
+/// component on its root.
+/// 
 /// It expects that every object to be added to the radar will have a 
 /// DetectableObject on its root.
 /// </remarks>
