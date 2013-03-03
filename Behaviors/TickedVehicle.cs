@@ -16,6 +16,15 @@ public abstract class TickedVehicle : Vehicle
 	UnityTickedQueue _steeringQueue;
 
 	[SerializeField]
+	/// <summary>
+	/// The acceleration smooth rate.
+	/// </summary>
+	/// 
+	/// The higher the smoothRate parameter, the more noise there is
+	/// likely to be in the movement. A value of 1 causes the acceleration
+	/// not to be smoothed at all. A value of close to 0 causes the acceleration
+	/// to change _very_ slowly. A value less or equal 0 will ignore the
+	/// parameter and result in no smoothing.
 	float _accelerationSmoothRate = 0.4f;
 	
     /// <summary>
@@ -188,7 +197,7 @@ public abstract class TickedVehicle : Vehicle
 			Damp out abrupt changes and oscillations in steering acceleration
 			(rate is proportional to time step, then clipped into useful range)
 			
-			The lower the smoothRate parameter, the more noise there is
+			The higher the smoothRate parameter, the more noise there is
 			likely to be in the movement.
 		*/
 		
