@@ -98,7 +98,13 @@ public class SteerForWander : Steering
 		}
 		_target.Normalize();
 		_target *= _targetRadius;
-		return Direction() * _targetDistance + _target;
+		
+		var force = Direction() * _targetDistance + _target;
+		if (force.sqrMagnitude > 1)
+		{
+			force.Normalize();
+		}
+		return force;
     }
 
 #if ANNOTATE_WANDER
