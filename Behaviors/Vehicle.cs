@@ -364,13 +364,16 @@ public abstract class Vehicle : DetectableObject
 	/// Another vehicle to check against<see cref="Vehicle"/>
 	/// </param>
 	/// <param name="minDistance">
-	/// Minimum distance <see cref="System.Single"/>
+	/// Minimum distance. Any vehicle closer than this, is considered a neighbor. <see cref="System.Single"/>
 	/// </param>
 	/// <param name="maxDistance">
-	/// Maximum distance <see cref="System.Single"/>
+	/// Maximum distance. Any vehicle further away than his, is not considered to be a neighbor. <see cref="System.Single"/>
 	/// </param>
 	/// <param name="cosMaxAngle">
-	/// Cosine of the maximum angle between vehicles (for performance)<see cref="System.Single"/>
+	/// Cosine (for performance) of the maximum angle between vehicles. Is the other vehicle between min 
+	/// and max distance away, the angle between this vehicles forward vector and the direction vector 
+	/// towards the other vehicle is calculated. The cosine of that angle is checked if it's larger than 
+	/// the max cosine value. <see cref="System.Single"/>
 	/// </param>
 	/// <returns>
 	/// True if within the neighborhood, or false if otherwise<see cref="System.Boolean"/>
@@ -467,9 +470,10 @@ public abstract class Vehicle : DetectableObject
 	/// Target speed to aim for.
 	/// </param>
 	public Vector3 GetTargetSpeedVector(float targetSpeed) {
-		 float mf = MaxForce;
-		 float speedError = targetSpeed - Speed;
-		 return Transform.forward * Mathf.Clamp (speedError, -mf, +mf);		
+		float mf = MaxForce;
+		float speedError = targetSpeed - Speed;
+		Debug.LogWarning(speedError);
+		return Transform.forward * Mathf.Clamp (speedError, -mf, +mf);		
 	}
 	
 	
