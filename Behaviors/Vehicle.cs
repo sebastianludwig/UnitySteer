@@ -470,10 +470,9 @@ public abstract class Vehicle : DetectableObject
 	/// Target speed to aim for.
 	/// </param>
 	public Vector3 GetTargetSpeedVector(float targetSpeed) {
-		float mf = MaxForce;
-		float speedError = targetSpeed - Speed;
-		Debug.LogWarning(speedError);
-		return Transform.forward * Mathf.Clamp (speedError, -mf, +mf);		
+		 float mf = MaxForce;
+		 float speedError = targetSpeed - Speed;
+		 return Transform.forward * Mathf.Clamp (speedError, -mf, +mf);		
 	}
 	
 	
