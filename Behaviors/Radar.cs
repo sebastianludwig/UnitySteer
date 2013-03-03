@@ -290,7 +290,7 @@ public class Radar: MonoBehaviour {
         
         for (int i = 0; i < _detectedObjects.Count; i++) {
             var d = _detectedObjects[i];
-            var v = d as Vehicle;
+            var v = d.GetComponent<Vehicle>();
             if (v != null && (v.enabled || _detectDisabledVehicles)) {
                 _vehicles.Add(v);
             }
