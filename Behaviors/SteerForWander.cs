@@ -81,8 +81,8 @@ public class SteerForWander : Steering
 	
 	private Vector3 Direction()
 	{
-		if (Vehicle.Speed == 0)
-			return Vehicle.transform.forward.normalized;  // Default to forward vector
+		if (Vehicle == null || Vehicle.Speed == 0)
+			return transform.forward.normalized;		// Default to forward vector
 		else
         	return Vehicle.Velocity.normalized;          // Velocity
 	}
