@@ -89,9 +89,7 @@ public class SteerForWander : Steering
 	
     protected override Vector3 CalculateForce()
     {
-		_target += new Vector3(Random.Range(-_jitterRadius, _jitterRadius), 
-					Random.Range(-_jitterRadius, _jitterRadius), 
-					Random.Range(-_jitterRadius, _jitterRadius));
+		_target += Random.insideUnitSphere * _jitterRadius;
 		if (Vehicle.IsPlanar)
 		{
 			_target.y = 0;
